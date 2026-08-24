@@ -1,16 +1,6 @@
 {
-  "name": "server",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "axios": "^1.19.0",
@@ -20,6 +10,7 @@
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "pg": "^8.23.0",
+    "prisma": "^7.9.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "xlsx": "^0.18.5"
