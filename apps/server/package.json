@@ -22,5 +22,12 @@
     "@types/node": "^26.2.0",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.23.1"
-  }
+  },
+  "scripts": {
+  "dev": "tsx watch src/index.ts",
+  "build": "tsc",
+  "migrate": "prisma migrate dev",
+  "generate": "prisma generate",
+  "studio": "prisma studio"
+}
 }
