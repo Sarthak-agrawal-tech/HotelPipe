@@ -2,7 +2,9 @@
 Hotel Full CRM controler
 
 
-#Folder Structure
+## 📂 Project Architecture
+
+```text
 hotelpipe/
 ├── apps/
 │   ├── server/                          # Express Backend Service
@@ -106,3 +108,5 @@ hotelpipe/
 │
 ├── .gitignore
 └── README.md
+```
+
