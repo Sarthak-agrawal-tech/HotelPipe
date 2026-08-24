@@ -4,120 +4,100 @@ Hotel Full CRM controler
 
 #Folder Structure
 hotelpipe/
-│
 ├── apps/
-│   ├── server/                          # Express backend
+│   ├── server/                          # Express Backend Service
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma            # All DB models
-│   │   │   └── migrations/              # Auto-generated
-│   │   │
+│   │   │   ├── schema.prisma            # Database schemas & models
+│   │   │   └── migrations/              # Auto-generated schema changes
 │   │   ├── src/
-│   │   │   ├── index.ts                 # Entry point
-│   │   │   │
+│   │   │   ├── index.ts                 # Server entry point
 │   │   │   ├── config/
-│   │   │   │   ├── env.ts               # All env variables
-│   │   │   │   └── prismaClient.ts      # Prisma singleton
-│   │   │   │
+│   │   │   │   ├── env.ts               # Environment variable validation
+│   │   │   │   └── prismaClient.ts      # Prisma client singleton
 │   │   │   ├── routes/
-│   │   │   │   ├── hotel.ts             # Hotel CRUD
-│   │   │   │   ├── lead.ts              # Lead management
-│   │   │   │   ├── followup.ts          # Follow-up sequences
-│   │   │   │   ├── whatsapp.ts          # Webhook receiver
-│   │   │   │   └── dashboard.ts         # Metrics endpoints
-│   │   │   │
+│   │   │   │   ├── hotel.ts             # Hotel profiles CRUD
+│   │   │   │   ├── lead.ts              # Lead ingestion & routing
+│   │   │   │   ├── followup.ts          # Messaging sequence configs
+│   │   │   │   ├── whatsapp.ts          # Meta webhook receiver
+│   │   │   │   └── dashboard.ts         # Analytical metrics endpoints
 │   │   │   ├── controllers/
 │   │   │   │   ├── hotelController.ts
 │   │   │   │   ├── leadController.ts
 │   │   │   │   ├── followupController.ts
 │   │   │   │   ├── whatsappController.ts
 │   │   │   │   └── dashboardController.ts
-│   │   │   │
 │   │   │   ├── services/
-│   │   │   │   ├── whatsappService.ts   # Send/receive WhatsApp
-│   │   │   │   ├── leadService.ts       # Lead logic
-│   │   │   │   ├── followupService.ts   # Sequence engine
-│   │   │   │   ├── excelService.ts      # Excel import parser
-│   │   │   │   └── aiService.ts         # Claude API calls
-│   │   │   │
+│   │   │   │   ├── whatsappService.ts   # Meta API gateway
+│   │   │   │   ├── leadService.ts       # Lead assignment logic
+│   │   │   │   ├── followupService.ts   # Sequence automation engine
+│   │   │   │   ├── excelService.ts      # Multi-row spreadsheet parser
+│   │   │   │   └── aiService.ts         # Anthropic Claude completions
 │   │   │   ├── jobs/
-│   │   │   │   └── followupJob.ts       # node-cron daily job
-│   │   │   │
+│   │   │   │   └── followupJob.ts       # Cron scheduling daemon
 │   │   │   └── middleware/
-│   │   │       ├── errorHandler.ts
-│   │   │       └── auth.ts              # Basic auth middleware
-│   │   │
+│   │   │       ├── errorHandler.ts      # Catch-all exception handling
+│   │   │       └── auth.ts              # Stateless access validation
 │   │   ├── .env
 │   │   ├── .env.example
 │   │   ├── package.json
 │   │   ├── tsconfig.json
 │   │   └── prisma.config.ts
 │   │
-│   └── web/                             # Next.js frontend
+│   └── web/                             # Next.js Frontend Client
 │       ├── app/
-│       │   ├── layout.tsx
-│       │   ├── page.tsx                 # Redirect to dashboard
-│       │   │
-│       │   ├── (auth)/
+│       │   ├── layout.tsx               # Root view layout wrapper
+│       │   ├── page.tsx                 # Core entrance routing node
+│       │   ├── (auth)/                  # Shared Auth route layout group
 │       │   │   ├── login/
 │       │   │   │   └── page.tsx
 │       │   │   └── register/
 │       │   │       └── page.tsx
-│       │   │
-│       │   └── dashboard/
-│       │       ├── layout.tsx           # Sidebar + header
-│       │       ├── page.tsx             # Main metrics overview
+│       │   └── dashboard/               # Core application interface
+│       │       ├── layout.tsx           # Sidebar & top header framework
+│       │       ├── page.tsx             # Main performance metrics
 │       │       ├── leads/
-│       │       │   ├── page.tsx         # All leads table
+│       │       │   ├── page.tsx         # Tabular data directory
 │       │       │   └── new/
-│       │       │       └── page.tsx     # Manual lead entry form
+│       │       │       └── page.tsx     # Manual creation view
 │       │       ├── followups/
-│       │       │   └── page.tsx         # Follow-up status view
+│       │       │   └── page.tsx         # Active pipeline visualizer
 │       │       ├── import/
-│       │       │   └── page.tsx         # Excel import page
+│       │       │   └── page.tsx         # Bulk file ingestion point
 │       │       └── settings/
-│       │           └── page.tsx         # Hotel profile + WhatsApp setup
-│       │
+│       │           └── page.tsx         # Channel integration panel
 │       ├── components/
-│       │   ├── ui/                      # Reusable UI components
+│       │   ├── ui/                      # Core base components (Design System)
 │       │   │   ├── Button.tsx
 │       │   │   ├── Input.tsx
 │       │   │   ├── Table.tsx
 │       │   │   ├── Card.tsx
 │       │   │   ├── Badge.tsx
 │       │   │   └── Modal.tsx
-│       │   │
-│       │   ├── dashboard/
-│       │   │   ├── MetricsCard.tsx      # Single stat display
-│       │   │   ├── LeadsChart.tsx       # Leads over time chart
-│       │   │   ├── ConversionChart.tsx  # Conversion rate chart
-│       │   │   └── RecentLeads.tsx      # Latest 5 leads table
-│       │   │
-│       │   ├── leads/
-│       │   │   ├── LeadsTable.tsx       # Full leads list
-│       │   │   ├── LeadRow.tsx          # Single lead row
-│       │   │   ├── LeadStatusBadge.tsx  # Color-coded status
-│       │   │   ├── AddLeadForm.tsx      # Manual entry form
-│       │   │   └── LeadDetail.tsx       # Lead detail modal
-│       │   │
-│       │   ├── followups/
-│       │   │   ├── FollowupTable.tsx    # Follow-up queue
-│       │   │   └── FollowupStatus.tsx   # Day 1/3/7 indicator
-│       │   │
-│       │   ├── import/
-│       │   │   └── ExcelUpload.tsx      # Drag and drop upload
-│       │   │
-│       │   └── layout/
+│       │   ├── dashboard/               # Analytical chart blocks
+│       │   │   ├── MetricsCard.tsx
+│       │   │   ├── LeadsChart.tsx
+│       │   │   ├── ConversionChart.tsx
+│       │   │   └── RecentLeads.tsx
+│       │   ├── leads/                   # Contextual records display
+│       │   │   ├── LeadsTable.tsx
+│       │   │   ├── LeadRow.tsx
+│       │   │   ├── LeadStatusBadge.tsx
+│       │   │   ├── AddLeadForm.tsx
+│       │   │   └── LeadDetail.tsx
+│       │   ├── followups/               # Pipeline execution units
+│       │   │   ├── FollowupTable.tsx
+│       │   │   └── FollowupStatus.tsx
+│       │   ├── import/                  # File streaming widgets
+│       │   │   └── ExcelUpload.tsx
+│       │   └── layout/                  # Structural wrapper systems
 │       │       ├── Sidebar.tsx
 │       │       ├── Header.tsx
 │       │       └── MobileNav.tsx
-│       │
 │       ├── lib/
-│       │   ├── api.ts                   # Axios instance + all API calls
-│       │   └── utils.ts                 # Helper functions
-│       │
+│       │   ├── api.ts                   # Centralized HTTP request layer
+│       │   └── utils.ts                 # Style merges & formatters
 │       ├── types/
-│       │   └── index.ts                 # Shared TypeScript types
-│       │
+│       │   └── index.ts                 # System-wide type definitions
 │       ├── .env.local
 │       ├── .env.example
 │       ├── package.json
