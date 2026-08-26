@@ -1,48 +1,46 @@
-// redirect to dashboard
-import Link from 'next/link';
-import { Show } from '@clerk/nextjs';
+import type { Metadata } from "next";
+
+// You will need to move these components from Lovable into your Next.js project
+import { Nav } from "@/components/landing/Nav";
+import { Hero } from "@/components/landing/Hero";
+import { Audit } from "@/components/landing/Audit";
+import { Philosophy } from "@/components/landing/Philosophy";
+import { Capabilities } from "@/components/landing/Capabilities";
+import { Markets } from "@/components/landing/Markets";
+import { Pricing } from "@/components/landing/Pricing";
+import { Founder } from "@/components/landing/Founder";
+import { Footer } from "@/components/landing/Footer";
+
+// Next.js handles SEO and head tags using this exported metadata object
+export const metadata: Metadata = {
+  title: "HotelPipe — AI Operating System for Indian Hotels",
+  description:
+    "HotelPipe is the WhatsApp-first AI receptionist and CRM for independent Indian hotels. Capture every lead, automate follow-ups, and let your team close.",
+  openGraph: {
+    title: "HotelPipe — AI Operating System for Indian Hotels",
+    description:
+      "Your guest leads are dying in WhatsApp. HotelPipe turns every message into a structured pipeline — AI captured, human closed.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+};
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6">
-      <div className="max-w-3xl text-center">
-        <h1 className="mb-4 text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl">
-          HotelPipe
-        </h1>
-        <p className="mb-8 text-xl text-gray-600">
-          The AI Operating System for Independent Indian Hotels. 
-          <br className="hidden sm:block" />
-          Capture every lead, automate follow-ups, and increase bookings.
-        </p>
-        
-        <div className="flex flex-col justify-center gap-4 sm:flex-row">
-          {/* What users see if they are ALREADY logged in */}
-          <Show when ="signed-in">
-            <Link 
-              href="/dashboard"
-              className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-8 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
-            >
-              Go to Dashboard
-            </Link>
-          </Show>
-          
-          {/* What users see if they are NOT logged in */}
-          <Show when = "signed-out">
-            <Link 
-              href="/login"
-              className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-8 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
-            >
-              Sign In
-            </Link>
-            <Link 
-              href="/register"
-              className="inline-flex items-center justify-center rounded-md bg-white px-8 py-3 text-sm font-medium text-indigo-600 shadow-sm ring-1 ring-inset ring-indigo-600 hover:bg-gray-50 transition-colors"
-            >
-              Register Hotel
-            </Link>
-          </Show>
-        </div>
-      </div>
-    </main>
+    <div className="min-h-screen bg-background font-sans text-foreground selection:bg-primary/10">
+      <Nav />
+      <main>
+        <Hero />
+        <Audit />
+        <Philosophy />
+        <Capabilities />
+        <Markets />
+        <Pricing />
+        <Founder />
+      </main>
+      <Footer />
+    </div>
   );
 }

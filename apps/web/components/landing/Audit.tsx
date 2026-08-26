@@ -1,4 +1,5 @@
-import ledgerPhone from "@/assets/ledger-phone.jpg";
+import Image from "next/image";
+import ledgerPhone from "../../assets/ledger-phone.jpg"
 
 export function Audit() {
   return (
@@ -42,7 +43,7 @@ export function Audit() {
             </div>
           </div>
           <div className="relative mt-10 md:mt-0">
-            <img
+            <Image
               src={ledgerPhone}
               alt="A handwritten hotel reservation ledger beside a smartphone running WhatsApp — where hotel sales actually live"
               loading="lazy"

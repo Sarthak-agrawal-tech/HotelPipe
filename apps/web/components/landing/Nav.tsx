@@ -1,4 +1,7 @@
-import { Link } from "@tanstack/react-router";
+'use client';
+
+import Link from "next/link";
+import { UserButton, Show } from "@clerk/nextjs";
 
 export function Nav() {
   return (
@@ -19,19 +22,37 @@ export function Nav() {
             Pricing
           </a>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/dashboard"
-            className="hidden text-sm font-medium transition-colors hover:text-primary sm:block"
-          >
-            Dashboard
-          </Link>
-          <a
-            href="#pilot"
-            className="rounded-full bg-foreground px-4 py-2 text-sm font-bold text-background transition-all hover:bg-primary hover:text-primary-foreground"
-          >
-            Book a Pilot
-          </a>
+        
+        {/* Right Side: Dynamic Auth & CTA Actions */}
+        <div className="flex items-center gap-4">
+          
+          {/* What logged-in users see */}
+          <Show when = "signed-in">
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              Dashboard
+            </Link>
+            <UserButton />
+          </Show>
+
+          {/* What brand-new visitors see */}
+          <Show when="signed-out">
+            <Link
+              href="/login"
+              className="text-sm font-medium transition-colors hover:text-primary"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-full bg-foreground px-4 py-2 text-sm font-bold text-background transition-all hover:bg-primary hover:text-primary-foreground"
+            >
+              Book a Pilot
+            </Link>
+          </Show>
+
         </div>
       </div>
     </nav>
