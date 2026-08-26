@@ -3,16 +3,12 @@ import dotenv from 'dotenv';
 
 //Routes import
 import hotelRoutes from './routes/hotel';
+import leadRoutes from "./routes/lead"
 
 
 // 1. Force dotenv to resolve from the root of apps/server
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-// 2. Immediate Diagnostic Check (Delete this after it works)
-console.log('--- ENV DIAGNOSTIC ---');
-console.log('Publishable Key:', process.env.CLERK_PUBLISHABLE_KEY ? '✅ Loaded' : '❌ MISSING');
-console.log('Secret Key:', process.env.CLERK_SECRET_KEY ? '✅ Loaded' : '❌ MISSING');
-console.log('----------------------');
 
 import express from 'express';
 import cors from 'cors';
@@ -30,6 +26,8 @@ app.use(clerkAuth);
 //Hotel Routes
 app.use('/api/hotels', hotelRoutes);
 
+//Leads Routes
+app.use('/api/leads', leadRoutes)
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
