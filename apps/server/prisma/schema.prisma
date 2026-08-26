@@ -9,6 +9,7 @@ datasource db {
 
 model Hotel {
   id              String   @id @default(cuid())
+  ownerId         String   @unique
   name            String
   city            String
   state           String

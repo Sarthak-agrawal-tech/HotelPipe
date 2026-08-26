@@ -1,6 +1,10 @@
 import path from 'path';
 import dotenv from 'dotenv';
 
+//Routes import
+import hotelRoutes from './routes/hotel';
+
+
 // 1. Force dotenv to resolve from the root of apps/server
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
@@ -23,10 +27,9 @@ app.use(express.json());
 // Pass keys explicitly to middleware just in case the SDK is failing to read the global process.env
 app.use(clerkAuth);
 
-app.get('/api/me', requireAuth, (req, res) => {
-  const auth = getAuth(req);
-  res.json({ message: 'Backend connection successful!', userId: auth.userId });
-});
+//Hotel Routes
+app.use('/api/hotels', hotelRoutes);
+
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
