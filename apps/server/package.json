@@ -3,8 +3,9 @@
     "@anthropic-ai/sdk": "^0.120.0",
     "@clerk/express": "^2.1.61",
     "@clerk/nextjs": "^7.8.0",
+    "@google/genai": "^2.19.0",
     "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@supabase/supabase-js": "^2.112.4",
     "axios": "^1.19.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -12,7 +13,6 @@
     "multer": "^2.2.0",
     "node-cron": "^4.6.0",
     "pg": "^8.23.0",
-    "prisma": "^7.9.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "xlsx": "^0.18.5"
