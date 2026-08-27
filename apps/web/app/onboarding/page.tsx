@@ -78,19 +78,50 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      // For V1, we will send the text data. Image uploads to Supabase Storage 
-      // require a slightly different multipart/form-data approach which we can wire up next.
-      await fetchWithAuth('/api/hotels', getToken, {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          roomCount: parseInt(formData.roomCount) || 0,
-        }),
+      const token = await getToken();
+      const payload = new FormData();
+
+      // 1. Append all the text fields
+      Object.entries(formData).forEach(([key, value]) => {
+        // Ensure roomCount isn't empty, default to "0"
+        if (key === "roomCount" && !value) value = "0";
+        payload.append(key, value as string);
       });
+
+      // 2. Append the files and their labels
+      mediaFiles.forEach((media, index) => {
+        payload.append("files", media.file);
+        // If the user forgot a label, give it a fallback name
+        payload.append("labels", media.label || `Unlabeled File ${index + 1}`);
+      });
+
+      // 3. We use native fetch here instead of fetchWithAuth 
+      // because custom fetch wrappers often force Content-Type to application/json.
+      // With FormData, we MUST let the browser automatically set the Content-Type boundary!
+      const response = await fetch(
+        process.env.NEXT_PUBLIC_API_URL 
+          ? `${process.env.NEXT_PUBLIC_API_URL}/api/hotels`
+          : 'http://localhost:4000/api/hotels', 
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // DO NOT set Content-Type here!
+          },
+          body: payload,
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.error || "Failed to create hotel profile.");
+      }
       
+      // Success! Send them to the dashboard
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || "Failed to create hotel profile.");
+      setError(err.message || "An unexpected error occurred.");
+    } finally {
       setIsLoading(false);
     }
   };
