@@ -8,18 +8,48 @@ datasource db {
 }
 
 model Hotel {
-  id              String   @id @default(cuid())
-  ownerId         String   @unique
-  name            String
-  city            String
-  state           String
-  whatsappNumber  String   @unique
-  primaryLanguage String   @default("hindi")
-  focusArea       String   @default("wedding")
-  createdAt       DateTime @default(now())
+  id                  String   @id @default(cuid())
+  ownerId             String   @unique
+  name                String
+  city                String
+  state               String
+  googleMapsLink      String?
+  
+  whatsappNumber      String   @unique
+  secondaryNumbers    String?
+  primaryLanguage     String   @default("hindi")
+  focusArea           String   @default("wedding")
+  teamSize            String   @default("solo")
+  
+  // Property Specs & Pricing
+  roomCount           Int      @default(0)
+  roomTypesAndPricing String?  @db.Text
+  banquetPackages     String?  @db.Text
+  amenities           String?  @db.Text
+  
+  // Policies & Notes
+  checkInTime         String?
+  checkOutTime        String?
+  cancellationPolicy  String?  @db.Text
+  faqs                String?  @db.Text
+  
+  createdAt           DateTime @default(now())
 
-  leads           Lead[]
-  followups       FollowUp[]
+  // Relations
+  leads               Lead[]
+  media               HotelMedia[]
+  // followups        FollowUp[] (Keep this if you already have it)
+  followups           FollowUp[]
+}
+
+// NEW: Stores the labeled images for the AI to use
+model HotelMedia {
+  id        String   @id @default(cuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  url       String   // The Supabase Storage URL
+  label     String   // The tag the user typed (e.g., "Banquet Hall 1")
+  createdAt DateTime @default(now())
 }
 
 model Lead {

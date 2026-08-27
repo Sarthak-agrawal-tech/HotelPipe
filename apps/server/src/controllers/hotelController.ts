@@ -12,9 +12,14 @@ export const createHotel = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const { name, city, state, whatsappNumber, primaryLanguage, focusArea } = req.body;
+    // Extract ALL the new fields from the request body
+    const { 
+      name, city, state, googleMapsLink, 
+      whatsappNumber, secondaryNumbers, primaryLanguage, focusArea, teamSize,
+      roomCount, roomTypesAndPricing, banquetPackages, amenities,
+      checkInTime, checkOutTime, cancellationPolicy, faqs
+    } = req.body;
 
-    // Ensure one hotel per owner for now
     const existingHotel = await prisma.hotel.findUnique({ where: { ownerId } });
     if (existingHotel) {
       res.status(400).json({ error: 'You have already registered a hotel.' });
@@ -27,9 +32,20 @@ export const createHotel = async (req: Request, res: Response): Promise<void> =>
         name,
         city,
         state,
+        googleMapsLink,
         whatsappNumber,
+        secondaryNumbers,
         primaryLanguage: primaryLanguage || 'hindi',
         focusArea: focusArea || 'wedding',
+        teamSize: teamSize || 'solo',
+        roomCount: roomCount ? parseInt(roomCount) : 0,
+        roomTypesAndPricing,
+        banquetPackages,
+        amenities,
+        checkInTime,
+        checkOutTime,
+        cancellationPolicy,
+        faqs
       },
     });
 
@@ -40,6 +56,7 @@ export const createHotel = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
+// ... keep getMyHotel as it is
 export const getMyHotel = async (req: Request, res: Response): Promise<void> => {
   try {
     const auth = getAuth(req);
