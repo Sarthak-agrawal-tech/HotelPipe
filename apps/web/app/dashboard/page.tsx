@@ -1,6 +1,9 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { fetchWithAuth } from "@/lib/api";
+
 import { Drawer } from "@/components/dashboard/Drawer";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -46,13 +49,46 @@ function parseCsv(text: string, startIndex: number): Lead[] {
 }
 
 export default function Dashboard() {
+  const { getToken, isLoaded } = useAuth();
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importNote, setImportNote] = useState<string | null>(null);
   
   // This state will soon be populated by your Express API
-  const [leads, setLeads] = useState<Lead[]>(SEED_LEADS);
-  const [featured, setFeatured] = useState<Lead>(SEED_LEADS[1] as Lead);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [featured, setFeatured] = useState<Lead | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadLeads() {
+      if (!isLoaded) return;
+      try {
+        const data = await fetchWithAuth('/api/leads', getToken);
+        
+        // Map Prisma data to Lovable's expected format
+        const formattedLeads: Lead[] = data.map((l: any) => ({
+          id: l.id,
+          name: l.name,
+          phone: l.phone,
+          city: l.inquiryType || "—", // Using inquiryType as a fallback for city
+          status: l.status.toLowerCase() as LeadStatus,
+          createdAt: new Date(l.createdAt).getTime(), // Convert ISO string to timestamp
+        }));
+
+        setLeads(formattedLeads);
+        if (formattedLeads.length > 0) {
+          setFeatured(formattedLeads[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch leads:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadLeads();
+  }, [isLoaded, getToken]);
 
   const startOfToday = new Date().setHours(0, 0, 0, 0);
   const todaysLeads = leads.filter((l) => l.createdAt >= startOfToday).length;
@@ -73,6 +109,10 @@ export default function Dashboard() {
   );
 
   const addLead = (lead: Lead) => setLeads((prev) => [lead, ...prev]);
+
+  if(isLoading){
+    return <div className="flex h-screen items-center justify-center font-sans text-foreground">Loading pipeline...</div>;
+  }
 
   const handleImportCsv = (file: File) => {
     const reader = new FileReader();
@@ -128,17 +168,27 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-5">
-            <LeadStatusCard
-              leadName={featured.name}
-              leadCity={featured.city}
-              status={featured.status}
-              onStatusChange={(status) => {
-                setFeatured((f) => ({ ...f, status }));
-                setLeads((prev) =>
-                  prev.map((l) => (l.id === featured.id ? { ...l, status } : l)),
-                );
-              }}
-            />
+            {/* Check if featured exists before rendering the card */}
+            {featured ? (
+              <LeadStatusCard
+                leadName={featured.name}
+                leadCity={featured.city}
+                status={featured.status}
+                onStatusChange={(status) => {
+                  // TypeScript also needs f to be checked here
+                  setFeatured((f) => (f ? { ...f, status } : null));
+                  setLeads((prev) =>
+                    prev.map((l) => (l.id === featured.id ? { ...l, status } : l)),
+                  );
+                }}
+              />
+            ) : (
+              // Clean placeholder for when the pipeline is empty
+              <div className="flex h-32 items-center justify-center rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground shadow-sm">
+                No active leads to display.
+              </div>
+            )}
+            
             <LedgerPulse leads={leads} />
           </div>
         </div>
