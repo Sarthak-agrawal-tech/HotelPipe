@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { getAuth } from '@clerk/express';
 import { prisma } from '../config/prismaClient';
+import { supabase } from '../config/supabaseClient'
+import 'multer';
 
 export const createHotel = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -11,14 +13,7 @@ export const createHotel = async (req: Request, res: Response): Promise<void> =>
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-
-    // Extract ALL the new fields from the request body
-    const { 
-      name, city, state, googleMapsLink, 
-      whatsappNumber, secondaryNumbers, primaryLanguage, focusArea, teamSize,
-      roomCount, roomTypesAndPricing, banquetPackages, amenities,
-      checkInTime, checkOutTime, cancellationPolicy, faqs
-    } = req.body;
+  
 
     const existingHotel = await prisma.hotel.findUnique({ where: { ownerId } });
     if (existingHotel) {
@@ -26,28 +21,66 @@ export const createHotel = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    // 1. Create the base hotel record
     const hotel = await prisma.hotel.create({
       data: {
         ownerId,
-        name,
-        city,
-        state,
-        googleMapsLink,
-        whatsappNumber,
-        secondaryNumbers,
-        primaryLanguage: primaryLanguage || 'hindi',
-        focusArea: focusArea || 'wedding',
-        teamSize: teamSize || 'solo',
-        roomCount: roomCount ? parseInt(roomCount) : 0,
-        roomTypesAndPricing,
-        banquetPackages,
-        amenities,
-        checkInTime,
-        checkOutTime,
-        cancellationPolicy,
-        faqs
+        name: req.body.name,
+        city: req.body.city,
+        state: req.body.state,
+        googleMapsLink: req.body.googleMapsLink,
+        whatsappNumber: req.body.whatsappNumber,
+        secondaryNumbers: req.body.secondaryNumbers,
+        primaryLanguage: req.body.primaryLanguage || 'hindi',
+        focusArea: req.body.focusArea || 'wedding',
+        teamSize: req.body.teamSize || 'solo',
+        roomCount: req.body.roomCount ? parseInt(req.body.roomCount) : 0,
+        roomTypesAndPricing: req.body.roomTypesAndPricing,
+        banquetPackages: req.body.banquetPackages,
+        amenities: req.body.amenities,
+        checkInTime: req.body.checkInTime,
+        checkOutTime: req.body.checkOutTime,
+        cancellationPolicy: req.body.cancellationPolicy,
+        faqs: req.body.faqs
       },
     });
+
+    // 2. Handle File Uploads to Supabase Storage
+    const files = req.files as Express.Multer.File[];
+    let labels = req.body.labels || [];
+    
+    // Ensure labels is an array even if only one file was uploaded
+    if (!Array.isArray(labels)) labels = [labels];
+
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const label = labels[i] || 'Unlabeled Media';
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `${hotel.id}/${Date.now()}-${i}.${fileExt}`;
+
+        // Upload to Supabase bucket 'hotel-media'
+        const { data, error } = await supabase.storage
+          .from('hotel-media')
+          .upload(fileName, file.buffer, { contentType: file.mimetype });
+
+        if (data && !error) {
+          // Get the public URL
+          const { data: publicUrlData } = supabase.storage
+            .from('hotel-media')
+            .getPublicUrl(fileName);
+
+          // Save to Prisma HotelMedia table
+          await prisma.hotelMedia.create({
+            data: {
+              hotelId: hotel.id,
+              url: publicUrlData.publicUrl,
+              label: label
+            }
+          });
+        }
+      }
+    }
 
     res.status(201).json(hotel);
   } catch (error: any) {
