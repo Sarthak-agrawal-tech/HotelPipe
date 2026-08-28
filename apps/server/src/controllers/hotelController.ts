@@ -93,12 +93,20 @@ export const createHotel = async (req: Request, res: Response): Promise<void> =>
 export const getMyHotel = async (req: Request, res: Response): Promise<void> => {
   try {
     const auth = getAuth(req);
-    
-    const hotel = await prisma.hotel.findUnique({ 
-      where: { ownerId: auth.userId || '' } 
+    const ownerId = auth.userId;
+
+    if (!ownerId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const hotel = await prisma.hotel.findUnique({
+      where: { ownerId },
+      include: { media: true } // Bring in the images too!
     });
 
     if (!hotel) {
+      // Return 404 so the frontend knows they haven't onboarded
       res.status(404).json({ error: 'Hotel not found' });
       return;
     }
@@ -106,6 +114,6 @@ export const getMyHotel = async (req: Request, res: Response): Promise<void> => 
     res.status(200).json(hotel);
   } catch (error) {
     console.error('Error fetching hotel:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Failed to fetch hotel' });
   }
 };

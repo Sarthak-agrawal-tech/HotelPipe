@@ -26,6 +26,8 @@ import {
   type LeadStatus,
 } from "@/components/dashboard/data";
 
+import { useRouter } from "next/navigation";
+
 const DAY = 86_400_000;
 
 function parseCsv(text: string, startIndex: number): Lead[] {
@@ -49,6 +51,7 @@ function parseCsv(text: string, startIndex: number): Lead[] {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const { getToken, isLoaded } = useAuth();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -60,20 +63,39 @@ export default function Dashboard() {
   const [featured, setFeatured] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadLeads() {
+ useEffect(() => {
+    async function loadDashboardData() {
       if (!isLoaded) return;
       try {
-        const data = await fetchWithAuth('/api/leads', getToken);
+        const token = await getToken();
         
-        // Map Prisma data to Lovable's expected format
+        // 1. GATEKEEPER CHECK: Use native fetch to safely catch the 404
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const hotelRes = await fetch(`${apiUrl}/api/hotels/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // If they have not onboarded, cleanly redirect them
+        if (hotelRes.status === 404) {
+          router.push('/onboarding');
+          return;
+        }
+
+        // If the backend threw a 500 or something else went wrong, stop execution
+        if (!hotelRes.ok) {
+          throw new Error(`Gatekeeper failed: ${hotelRes.status}`);
+        }
+
+        // 2. Fetch the leads (fetchWithAuth remains completely untouched and safe)
+        const data = await fetchWithAuth('/api/leads', () => token);
+        
         const formattedLeads: Lead[] = data.map((l: any) => ({
           id: l.id,
           name: l.name,
           phone: l.phone,
-          city: l.inquiryType || "—", // Using inquiryType as a fallback for city
+          city: l.inquiryType || "—", 
           status: l.status.toLowerCase() as LeadStatus,
-          createdAt: new Date(l.createdAt).getTime(), // Convert ISO string to timestamp
+          createdAt: new Date(l.createdAt).getTime(), 
         }));
 
         setLeads(formattedLeads);
@@ -81,13 +103,14 @@ export default function Dashboard() {
           setFeatured(formattedLeads[0]);
         }
       } catch (error) {
-        console.error("Failed to fetch leads:", error);
+        console.error("Failed to load dashboard data:", error);
       } finally {
         setIsLoading(false);
       }
     }
 
-    loadLeads();
+    loadDashboardData();
+  // Removed 'router' to prevent the React size-change warning
   }, [isLoaded, getToken]);
 
   const startOfToday = new Date().setHours(0, 0, 0, 0);
