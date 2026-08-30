@@ -1,68 +1,88 @@
-import { supabase } from '../config/supabaseClient';
+import {LeadStatus, LeadSource } from '../../generated/prisma/enums';
+import { prisma } from "../config/prismaClient";
+
 
 export const LeadService = {
-  async handleIncomingMessage(phone: string, text: string) {
-    let { data: lead } = await supabase.from('leads').select('*').eq('phone', phone).single();
+  // 1. Handle incoming message (Find existing lead or create a new one)
+  async handleIncomingMessage(phone: string, text: string, hotelId: string) {
+    // Look for an active lead for this specific hotel
+    let lead = await prisma.lead.findFirst({
+      where: { phone, hotelId },
+      orderBy: { createdAt: 'desc' }
+    });
 
     if (!lead) {
-      const { data } = await supabase.from('leads').insert({ phone }).select().single();
-      lead = data;
+      // Create a brand new WhatsApp lead
+      lead = await prisma.lead.create({
+        data: {
+          phone,
+          hotelId,
+          name: 'Unknown', // The AI will update this later once it asks their name
+          source: LeadSource.WHATSAPP,
+          status: LeadStatus.NEW,
+        }
+      });
     } else {
-      await supabase.from('leads').update({
-        last_interaction: new Date().toISOString(),
-        followup_level: 0
-      }).eq('id', lead.id);
+      // "Touch" the lead so the updatedAt timestamp is refreshed (acts as last_interaction)
+      lead = await prisma.lead.update({
+        where: { id: lead.id },
+        data: { updatedAt: new Date() }
+      });
     }
     
-    // Log User Message
-    await supabase.from('messages').insert({ lead_id: lead.id, sender: 'USER', message_text: text });
+    // Save the user's message to the chat history
+    await prisma.message.create({
+      data: {
+        leadId: lead.id,
+        sender: 'USER',
+        text: text
+      }
+    });
+
     return lead;
   },
 
+  // 2. Update Lead with AI Extracted Data
   async updateLeadPreferences(leadId: string, prefs: any, aiReply: string) {
-    await supabase.from('leads').update({
-      name: prefs.name || undefined,
-      location_preference: prefs.location || undefined,
-      guest_count: prefs.guestCount || undefined,
-      room_count: prefs.roomCount || undefined,
-      purpose: prefs.purpose || undefined,
-      selected_hotel_id: prefs.selectedHotelId || undefined,
-      wants_human: prefs.wantsHuman || false,
-      status: prefs.wantsHuman ? 'FOLLOW-UP DUE' : 'WAITING'
-    }).eq('id', leadId);
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        name: prefs.name || undefined,
+        inquiryType: prefs.inquiryType || undefined,
+        guestCount: prefs.guestCount ? parseInt(prefs.guestCount, 10) : undefined,
+        eventDate: prefs.eventDate ? new Date(prefs.eventDate) : undefined,
+        // If the AI flagged they want a human, set to FOLLOWUP_DUE, else WAITING
+        status: prefs.wantsHuman ? LeadStatus.FOLLOWUP_DUE : LeadStatus.WAITING
+      }
+    });
 
-    // Log AI Message
-    await supabase.from('messages').insert({ lead_id: leadId, sender: 'AI', message_text: aiReply });
-  },
-
-  async getChatHistory(leadId: string) {
-    const { data } = await supabase.from('messages')
-      .select('sender, message_text')
-      .eq('lead_id', leadId)
-      .order('created_at', { ascending: false })
-      .limit(6);
-    return (data || []).reverse();
-  },
-
-  async getAllHotels() {
-    const { data } = await supabase.from('hotels').select('*');
-    return data || [];
-  },
-
-  async getLeadsForFollowup() {
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase.from('leads').select('*, selected_hotel_id(*)')
-      .eq('status', 'WAITING')
-      .lte('last_interaction', oneDayAgo)
-      .lt('followup_level', 3)
-      .not('selected_hotel_id', 'is', null);
-    return data || [];
-  },
-  
-  async incrementFollowup(leadId: string) {
-    const { data: lead } = await supabase.from('leads').select('followup_level').eq('id', leadId).single();
-    if (lead) {
-      await supabase.from('leads').update({ followup_level: lead.followup_level + 1 }).eq('id', leadId);
+    // Save the AI's response to the chat history
+    if (aiReply) {
+      await prisma.message.create({
+        data: {
+          leadId: leadId,
+          sender: 'AI',
+          text: aiReply
+        }
+      });
     }
+  },
+
+  // 3. Fetch recent chat history for the AI prompt
+  async getChatHistory(leadId: string) {
+    const messages = await prisma.message.findMany({
+      where: { leadId },
+      orderBy: { createdAt: 'desc' },
+      take: 6 // Only grab the last 6 messages so we don't overload Gemini's context window
+    });
+    
+    return messages.reverse(); // Return in chronological order
+  },
+
+  // 4. Fetch the specific hotel's knowledge base
+  async getHotelDetails(hotelId: string) {
+    return await prisma.hotel.findUnique({
+      where: { id: hotelId }
+    });
   }
 };
