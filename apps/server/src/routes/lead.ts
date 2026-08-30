@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { getLeads } from '../controllers/leadController';
+import { getLeads, createLead, updateLeadStatus } from '../controllers/leadController';
 
 const router = Router();
 
-// Protect the route with Clerk middleware
 router.get('/', requireAuth, getLeads);
+router.post('/', requireAuth, createLead);
+router.put('/:id', requireAuth, updateLeadStatus); // Add this route
 
 export default router;

@@ -7,10 +7,15 @@ export function LineChart({ title, data }: LineChartProps) {
   const W = 100;
   const H = 44;
   const PAD = 4;
-  const max = Math.max(...data.map((d) => d.value)) * 1.15;
+  
+  // FIXED: Prevent divide-by-zero by setting a default max of 100 if all values are 0
+  const maxVal = Math.max(...data.map((d) => d.value));
+  const max = maxVal === 0 ? 100 : maxVal * 1.15; 
   const min = 0;
 
-  const x = (i: number) => PAD + (i * (W - PAD * 2)) / (data.length - 1);
+  // FIXED: Prevent divide-by-zero on the X axis if there's only 1 data point
+  const xDivider = data.length <= 1 ? 1 : data.length - 1;
+  const x = (i: number) => PAD + (i * (W - PAD * 2)) / xDivider;
   const y = (v: number) => H - PAD - ((v - min) / (max - min)) * (H - PAD * 2);
 
   const points = data.map((d, i) => `${x(i)},${y(d.value)}`).join(" ");
