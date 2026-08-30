@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import hotelRoutes from './routes/hotel';
 import leadRoutes from "./routes/lead"
 
+import { startFollowupJob } from './jobs/followupJobs';
+
 
 // 1. Force dotenv to resolve from the root of apps/server
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -28,6 +30,8 @@ app.use('/api/hotels', hotelRoutes);
 
 //Leads Routes
 app.use('/api/leads', leadRoutes)
+
+startFollowupJob();
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

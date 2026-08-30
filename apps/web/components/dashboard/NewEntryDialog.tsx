@@ -16,13 +16,21 @@ const inputCls =
 const labelCls =
   "mb-1.5 block font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase";
 
+const INQUIRY_TYPES = [
+  "Wedding",
+  "Corporate Event",
+  "Conference",
+  "Room Booking",
+  "Birthday / Party",
+  "General Inquiry"
+];
+
 export function NewEntryDialog({ open, onClose, onSave, nextId }: NewEntryDialogProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
+  const [inquiryType, setInquiryType] = useState(INQUIRY_TYPES[0]);
   const [note, setNote] = useState("");
   
-  // New State Variables for Schema fields
   const [source, setSource] = useState<LeadSource>(LeadSource.WHATSAPP);
   const [eventDate, setEventDate] = useState("");
   const [guestCount, setGuestCount] = useState("");
@@ -42,7 +50,7 @@ export function NewEntryDialog({ open, onClose, onSave, nextId }: NewEntryDialog
         id: nextId,
         name: name.trim(),
         phone: phone.trim() || "—",
-        city: city.trim() || "—",
+        city: inquiryType, // Maps inquiry type to the existing 'city' property in the interface
         source: source,
         eventDate: eventDate ? new Date(eventDate).getTime() : null,
         guestCount: guestCount ? parseInt(guestCount, 10) : null,
@@ -51,10 +59,9 @@ export function NewEntryDialog({ open, onClose, onSave, nextId }: NewEntryDialog
         createdAt: Date.now(),
       });
       
-      // Reset Form
       setName("");
       setPhone("");
-      setCity("");
+      setInquiryType(INQUIRY_TYPES[0]);
       setNote("");
       setEventDate("");
       setGuestCount("");
@@ -102,8 +109,12 @@ export function NewEntryDialog({ open, onClose, onSave, nextId }: NewEntryDialog
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>City / Inquiry Type</label>
-              <input className={inputCls} placeholder="e.g. Jaipur" value={city} onChange={(e) => setCity(e.target.value)} />
+              <label className={labelCls}>Inquiry Type</label>
+              <select className={inputCls} value={inquiryType} onChange={(e) => setInquiryType(e.target.value)}>
+                {INQUIRY_TYPES.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className={labelCls}>Lead Source</label>

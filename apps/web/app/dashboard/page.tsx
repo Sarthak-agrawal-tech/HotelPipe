@@ -15,7 +15,6 @@ import { LeadsTable } from "@/components/dashboard/LeadsTable";
 import { NewEntryDialog } from "@/components/dashboard/NewEntryDialog";
 
 import {
-  LEAD_STATUSES,
   LeadStatus,
   LeadSource,
   type Lead,
@@ -23,28 +22,40 @@ import {
 
 const DAY = 86_400_000;
 
-function parseCsv(text: string, startIndex: number): Lead[] {
+function parseDateSafely(dateStr: string | undefined) {
+  if (!dateStr) return undefined;
+  
+  // Try standard parsing first (YYYY-MM-DD)
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d.getTime();
+  
+  // If it fails, try to flip DD/MM/YYYY to YYYY-MM-DD
+  const parts = dateStr.split(/[-/]/);
+  if (parts.length === 3) {
+    const fallback = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    if (!isNaN(fallback.getTime())) return fallback.getTime();
+  }
+  
+  return undefined;
+}
+
+function parseCsv(text: string): Partial<Lead>[] {
   return text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line.split(",").map((c) => c.trim()))
-    .filter((cols) => cols.length >= 2 && cols[0] && cols[0].toLowerCase() !== "name")
-    .map((cols, i): Lead => {
-      // Safely parse CSV status into uppercase Prisma enum format
-      const rawStatus = (cols[3] || "NEW").toUpperCase();
-      const status = LEAD_STATUSES.includes(rawStatus as LeadStatus) 
-        ? (rawStatus as LeadStatus) 
-        : LeadStatus.NEW;
-
+    .filter((cols) => cols.length >= 2 && cols[0] && cols[0].toLowerCase() !== "guest name")
+    .map((cols) => {
       return {
-        id: `L-${1042 + startIndex + i}`,
         name: cols[0] ?? "Unnamed lead",
         phone: cols[1] || "—",
-        city: cols[2] || "—",
+        city: cols[2] || "—", 
+        eventDate: parseDateSafely(cols[3]), // <-- Uses the safe parser
+        guestCount: cols[4] ? parseInt(cols[4], 10) : undefined,
+        note: cols[5] || "",
         source: LeadSource.EXCEL_IMPORT,
-        status: status,
-        createdAt: Date.now(),
+        status: LeadStatus.NEW,
       };
     });
 }
@@ -215,16 +226,66 @@ export default function Dashboard() {
     return <div className="flex h-screen items-center justify-center font-sans text-foreground">Loading pipeline...</div>;
   }
 
-  const handleImportCsv = (file: File) => {
+  const handleImportCsv = async (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const parsed = parseCsv(String(reader.result ?? ""), leads.length);
+    reader.onload = async () => {
+      const token = await getToken();
+      if (!token) return;
+
+      const parsed = parseCsv(String(reader.result ?? ""));
+      
       if (parsed.length > 0) {
-        setLeads((prev) => [...parsed, ...prev]);
-        setImportNote(`Imported ${parsed.length} lead${parsed.length === 1 ? "" : "s"}`);
+        setImportNote("Importing to database...");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const newlySavedLeads: Lead[] = [];
+
+        // Save each row to the backend database
+        for (const lead of parsed) {
+          try {
+            const response = await fetch(`${apiUrl}/api/leads`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                name: lead.name,
+                phone: lead.phone,
+                city: lead.city, 
+                status: lead.status,
+                source: lead.source,
+                eventDate: lead.eventDate,
+                guestCount: lead.guestCount,
+                notes: lead.note
+              })
+            });
+
+            if (response.ok) {
+              const savedLead = await response.json();
+              newlySavedLeads.push({
+                id: savedLead.id,
+                name: savedLead.name,
+                phone: savedLead.phone,
+                city: savedLead.inquiryType || "—",
+                source: (savedLead.source as LeadSource) || LeadSource.EXCEL_IMPORT,
+                eventDate: savedLead.eventDate ? new Date(savedLead.eventDate).getTime() : null,
+                guestCount: savedLead.guestCount || null,
+                note: savedLead.notes || "",
+                status: savedLead.status as LeadStatus,
+                createdAt: new Date(savedLead.createdAt).getTime(),
+              });
+            }
+          } catch (error) {
+            console.error("Failed to save imported lead:", error);
+          }
+        }
+
+        // Update the UI with the successfully saved leads from the database
+        setLeads((prev) => [...newlySavedLeads, ...prev]);
+        setImportNote(`Successfully imported ${newlySavedLeads.length} leads!`);
         window.setTimeout(() => setImportNote(null), 4000);
       } else {
-        setImportNote("No rows found — use name,phone,city,status");
+        setImportNote("No rows found — check CSV format");
         window.setTimeout(() => setImportNote(null), 5000);
       }
     };
